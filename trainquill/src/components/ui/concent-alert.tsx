@@ -12,6 +12,7 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
+import { JSX } from "react";
 
 export default function ConsentAlert(): JSX.Element {
     const router = useRouter();
