@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Monomaniac_One } from "next/font/google";
 import "./globals.css";
+import Navbar from "@/components/Navbar";
 
 const monomaniacOne = Monomaniac_One({
   weight: "400",
@@ -10,18 +11,18 @@ const monomaniacOne = Monomaniac_One({
 
 export const metadata: Metadata = {
   title: "TrainQuill",
-  description: "stART ux study app made by team VanGoat for WPI, NUS, and the National Gallery Singapore",
+  description:
+    "stART ux study app made by team VanGoat for WPI, NUS, and the National Gallery Singapore",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
       <body className={`${monomaniacOne.variable} antialiased`}>
-        {children}
+        <Navbar />
+        <div className="pt-20">{children}</div>
       </body>
     </html>
   );
