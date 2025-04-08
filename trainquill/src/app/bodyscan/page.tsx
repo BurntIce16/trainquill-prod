@@ -15,10 +15,8 @@ export default function Home() {
   return (
     <div className="relative min-h-screen">
       <div className="grid grid-rows-[auto_auto_auto] items-center justify-items-center min-h-screen p-4 pb-20 gap-8 sm:p-20">
-        <h1 className="text-8xl">TrainQuill</h1>
-
         <div className="flex flex-col items-center gap-4">
-          <p className="text-2xl">BodyScan</p>
+          <h1 className="text-6xl">BodyScan</h1>
           <AudioController
             audioFile="/audio/bodyscan.mp3"
             onAudioRef={(ref) => audioRef.current = ref.current}

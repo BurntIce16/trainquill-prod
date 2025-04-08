@@ -28,8 +28,7 @@ export default function Home() {
     return (
         <div className="relative min-h-screen">
             <div className="grid grid-rows-[auto_auto_auto] items-center justify-items-center min-h-screen p-4 pt-8 pb-20 gap-2 sm:p-6">
-                <h1 className="text-6xl">TrainQuill</h1>
-                <h2 className="text-2xl">Art Hunt</h2>
+                <h1 className="text-4xl">Art Hunt</h1>
 
                 <AudioController
                     audioFile="/audio/art-hunt.mp3"
