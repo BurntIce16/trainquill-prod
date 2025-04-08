@@ -7,6 +7,7 @@ export default function Home() {
     <div className="relative min-h-screen">
       <div className="grid grid-rows-[auto_auto_auto] items-center justify-items-center min-h-screen p-4 pb-20 gap-8 sm:p-20">
         <h1 className="text-8xl">TrainQuill</h1>
+        <h2 className="text-2xl">Thank you for participating in this UX case study. Please click the link below to take the secure Qualtrics survey.</h2>
         <Button className="text-xl px-8 py-6" onClick={() => window.open('https://wpi.qualtrics.com/jfe/form/SV_7QKlRdH3gHHQc0m', '_blank')}>
           Open survey in a new tab
         </Button>
