@@ -1,24 +1,25 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 import cardBackground from "../../assets/card-background.jpg";
-import happyImg from "../../assets/angry.jpg";
-import sadImg from "../../assets/angry.jpg";
+import happyImg from "../../assets/happy.jpg";
+import sadImg from "../../assets/sad.jpg";
 import angryImg from "../../assets/angry.jpg";
-import surprisedImg from "../../assets/angry.jpg";
-import calmImg from "../../assets/angry.jpg";
-import excitedImg from "../../assets/angry.jpg";
-import afraidImg from "../../assets/angry.jpg";
-import disgustedImg from "../../assets/angry.jpg";
+import surprisedImg from "../../assets/surprised.jpg";
+import shameImg from "../../assets/shame.jpg";
+import excitedImg from "../../assets/excited.jpg";
+import afraidImg from "../../assets/afraid.jpg";
+import disgustedImg from "../../assets/disgusted.jpg";
 
-import contentImg from "../../assets/angry.jpg";
-import anxiousImg from "../../assets/angry.jpg";
-import boredImg from "../../assets/angry.jpg";
-import frustratedImg from "../../assets/angry.jpg";
-import proudImg from "../../assets/angry.jpg";
-import jealousImg from "../../assets/angry.jpg";
-import confusedImg from "../../assets/angry.jpg";
-import optimisticImg from "../../assets/angry.jpg";
+import guiltyImg from "../../assets/guilty.jpg";
+import anxiousImg from "../../assets/anxious.jpg";
+import boredImg from "../../assets/bored.jpg";
+import sillyImg from "../../assets/silly.jpg";
+import proudImg from "../../assets/proud.jpg";
+import jealousImg from "../../assets/jealous.jpg";
+import confusedImg from "../../assets/confused.jpg";
+import exhaustedImg from "../../assets/exhausted.jpg";
 
 interface Card {
   id: number;
@@ -33,20 +34,20 @@ const emotionSets = [
     { emotion: "Sad", image: sadImg },
     { emotion: "Angry", image: angryImg },
     { emotion: "Surprised", image: surprisedImg },
-    { emotion: "Calm", image: calmImg },
+    { emotion: "Shame", image: shameImg },
     { emotion: "Excited", image: excitedImg },
     { emotion: "Afraid", image: afraidImg },
     { emotion: "Disgusted", image: disgustedImg },
   ],
   [
-    { emotion: "Content", image: contentImg },
+    { emotion: "Guilty", image: guiltyImg },
     { emotion: "Anxious", image: anxiousImg },
     { emotion: "Bored", image: boredImg },
-    { emotion: "Frustrated", image: frustratedImg },
+    { emotion: "Silly", image: sillyImg },
     { emotion: "Proud", image: proudImg },
     { emotion: "Jealous", image: jealousImg },
     { emotion: "Confused", image: confusedImg },
-    { emotion: "Optimistic", image: optimisticImg },
+    { emotion: "Exhausted", image: exhaustedImg },
   ],
 ];
 
@@ -59,6 +60,7 @@ function shuffleArray<T>(array: T[]): T[] {
 }
 
 const EmotionsPage: React.FC = () => {
+  const router = useRouter();
   const [currentPage, setCurrentPage] = useState(0);
   const [cards, setCards] = useState<Card[]>([]);
 
@@ -83,9 +85,15 @@ const EmotionsPage: React.FC = () => {
   const allCardsFlipped = cards.every((card) => card.isFlipped);
 
   const handleContinue = () => {
+    // On first part, go to next emotions set.
     if (currentPage < emotionSets.length - 1) {
       setCurrentPage(currentPage + 1);
     }
+  };
+
+  // When on the second set and all cards are flipped, navigate to the memory game page.
+  const handleMemoryGame = () => {
+    router.push("/memory-game");
   };
 
   const handleBack = () => {
@@ -133,6 +141,7 @@ const EmotionsPage: React.FC = () => {
                 transform: card.isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
               }}
             >
+              {/* Front: card is hidden with the background image */}
               <div
                 style={{
                   position: "absolute",
@@ -145,6 +154,7 @@ const EmotionsPage: React.FC = () => {
                   borderRadius: "8px",
                 }}
               ></div>
+              {/* Back: card shows the emotion image and text */}
               <div
                 style={{
                   position: "absolute",
@@ -188,11 +198,31 @@ const EmotionsPage: React.FC = () => {
           </div>
         ))}
       </div>
+      {/* Navigation Buttons: Shown only when all cards are flipped */}
       {allCardsFlipped && (
         <>
-          {currentPage < emotionSets.length - 1 && (
+          {currentPage < emotionSets.length - 1 ? (
             <button
               onClick={handleContinue}
+              style={{
+                position: "fixed",
+                bottom: "20px",
+                right: "20px",
+                padding: "1rem 2rem",
+                backgroundColor: "#4CAF50",
+                color: "#fff",
+                border: "none",
+                borderRadius: "8px",
+                fontSize: "1rem",
+                cursor: "pointer",
+              }}
+            >
+              Continue
+            </button>
+          ) : (
+            // On the second part (last set), clicking Continue moves to the Memory Game.
+            <button
+              onClick={handleMemoryGame}
               style={{
                 position: "fixed",
                 bottom: "20px",
