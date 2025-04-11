@@ -21,7 +21,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${monomaniacOne.variable} antialiased`}>
-        <Navbar />
         <div className="pt-20">{children}</div>
       </body>
     </html>
