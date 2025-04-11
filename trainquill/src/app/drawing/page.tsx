@@ -45,7 +45,7 @@ export default function Home() {
 
                 <Button
                     className="fixed bottom-8 right-8"
-                    onClick={() => router.push('/survey')}
+                    onClick={() => router.push('/art-hunt')}
                 >
                     Continue
                 </Button>
