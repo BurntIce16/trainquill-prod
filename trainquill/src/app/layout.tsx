@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Monomaniac_One } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
 
 const monomaniacOne = Monomaniac_One({
   weight: "400",
@@ -21,7 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${monomaniacOne.variable} antialiased`}>
-        <div className="pt-20">{children}</div>
+        <div>{children}</div>
       </body>
     </html>
   );
