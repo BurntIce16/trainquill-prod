@@ -1,23 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
 import logo from "../../public/logo.png";
-import { FaBars, FaTimes } from "react-icons/fa";
 import Link from "next/link";
-
-const LINKS = [
-  { text: "Home", href: "/" },
-  { text: "BodyScan", href: "/bodyscan" },
-  { text: "Reframe", href: "/reframe" },
-];
+import Image from "next/image";
 
 const Navbar = () => {
   return (
     <nav className="fixed w-full h-24 shadow-xl bg-white z-50">
       <div className="flex items-center px-4 h-full w-full">
         <Link href="/">
-          <img
-            src={logo.src}
+          <Image
+            src={logo}
             alt="Logo"
             width={90}
             height={90}
