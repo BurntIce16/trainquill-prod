@@ -17,7 +17,6 @@ export function DeviceAlert() {
   const router = useRouter()
 
   useEffect(() => {
-    // Check if device is not a laptop/desktop
     const checkDevice = () => {
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
       const isTablet = /Tablet|iPad/i.test(navigator.userAgent)

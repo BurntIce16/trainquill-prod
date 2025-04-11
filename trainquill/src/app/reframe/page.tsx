@@ -1,279 +1,362 @@
 "use client";
+import React, { useRef, useEffect, useState } from "react";
 
-import { useEffect, useRef } from "react";
-import { Button } from "@/components/ui/button";
-
-const DrawingPage = () => {
+const CanvasBoard: React.FC = () => {
+  const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const colorButtonRef = useRef<HTMLInputElement>(null);
-  const clearButtonRef = useRef<HTMLButtonElement>(null);
-  const eraseButtonRef = useRef<HTMLButtonElement>(null);
-  const penButtonRef = useRef<HTMLButtonElement>(null);
-  const penSizeRef = useRef<HTMLInputElement>(null);
-  const toolTypeRef = useRef<HTMLSpanElement>(null);
-  const backgroundImageRef = useRef<HTMLImageElement | null>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [isEraser, setIsEraser] = useState(false);
+  const [penColor, setPenColor] = useState("#000000");
+  const [penSize, setPenSize] = useState(5);
+  const [eraserSize, setEraserSize] = useState(20);
+  const [lastX, setLastX] = useState(0);
+  const [lastY, setLastY] = useState(0);
+  const [cursorX, setCursorX] = useState(0);
+  const [cursorY, setCursorY] = useState(0);
+  const [canvasDimensions, setCanvasDimensions] = useState({
+    width: 0,
+    height: 0,
+  });
+  const [currentImageIndex, setCurrentImageIndex] = useState(2);
 
-  const eraseBool = useRef(false);
-  const drawBool = useRef(false);
-  const mouseXRef = useRef(0);
-  const mouseYRef = useRef(0);
-  const rectLeftRef = useRef(0);
-  const rectTopRef = useRef(0);
-  const contextRef = useRef<CanvasRenderingContext2D | null>(null);
+  // Sample images - replace with your actual image paths
+  const images = [
+    "/images/1.png",
+    "/images/2.png",
+    "/images/3.png",
+    "/images/4.png",
+    "/images/5.png",
+  ];
 
-  const isTouchDevice = () => {
-    try {
-      document.createEvent("TouchEvent");
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
-  const getXY = (
-    e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>
+  const getCircularDistance = (
+    index: number,
+    current: number,
+    length: number
   ) => {
-    let pageX: number, pageY: number;
-    if ("touches" in e) {
-      pageX = e.touches[0].pageX;
-      pageY = e.touches[0].pageY;
-    } else {
-      pageX = e.pageX;
-      pageY = e.pageY;
-    }
-    mouseXRef.current = pageX - rectLeftRef.current;
-    mouseYRef.current = pageY - rectTopRef.current;
+    let distance = index - current;
+    if (distance > length / 2) distance -= length;
+    else if (distance < -length / 2) distance += length;
+    return distance;
   };
 
-  const stopDrawing = () => {
-    if (contextRef.current) {
-      contextRef.current.beginPath();
-    }
-    drawBool.current = false;
-  };
+  useEffect(() => {
+    const updateCanvasSize = () => {
+      if (canvasRef.current) {
+        const width = 0.7 * window.innerWidth;
+        const height = 0.7 * window.innerHeight;
+        canvasRef.current.width = width;
+        canvasRef.current.height = height;
+        setCanvasDimensions({ width, height });
 
-  const startDrawing = (
-    e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>
-  ) => {
-    drawBool.current = true;
-    getXY(e);
-    if (contextRef.current) {
-      contextRef.current.beginPath();
-      contextRef.current.moveTo(mouseXRef.current, mouseYRef.current);
-    }
-  };
+        const context = canvasRef.current.getContext("2d");
+        if (context) {
+          context.fillStyle = "#ffffff";
+          context.fillRect(0, 0, width, height);
 
-  const drawOnCanvas = (
-    e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>
-  ) => {
-    if (!isTouchDevice()) e.preventDefault();
-    getXY(e);
-    if (drawBool.current && contextRef.current) {
-      const ctx = contextRef.current;
-      ctx.lineTo(mouseXRef.current, mouseYRef.current);
-      ctx.stroke();
-      ctx.globalCompositeOperation = eraseBool.current
-        ? "destination-out"
-        : "source-over";
-    }
-  };
-
-  const handlePenClick = () => {
-    if (toolTypeRef.current) toolTypeRef.current.innerText = "Pen";
-    eraseBool.current = false;
-  };
-
-  const handleEraseClick = () => {
-    if (toolTypeRef.current) toolTypeRef.current.innerText = "Eraser";
-    eraseBool.current = true;
-  };
-
-  const handlePenSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Number(e.target.value);
-    if (contextRef.current) {
-      contextRef.current.lineWidth = value;
-    }
-  };
-
-  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (contextRef.current) {
-      contextRef.current.strokeStyle = e.target.value;
-    }
-  };
-
-  const handleBackgroundImageUpload = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const img = new Image();
-        img.onload = () => {
-          if (canvasRef.current && contextRef.current) {
-            contextRef.current.drawImage(
-              img,
-              0,
-              0,
-              canvasRef.current.width,
-              canvasRef.current.height
-            );
-            backgroundImageRef.current = img;
-          }
-        };
-        if (typeof ev.target?.result === "string") {
-          img.src = ev.target.result;
+          // Load and draw current background image
+          const img = new Image();
+          img.src = images[currentImageIndex];
+          img.onload = () => {
+            context.globalCompositeOperation = "source-over";
+            context.drawImage(img, 0, 0, width, height);
+          };
         }
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+      }
+    };
 
-  const handleClear = () => {
-    if (contextRef.current && canvasRef.current) {
-      contextRef.current.clearRect(
-        0,
-        0,
-        canvasRef.current.width,
-        canvasRef.current.height
-      );
-      if (backgroundImageRef.current) {
-        contextRef.current.drawImage(
-          backgroundImageRef.current,
-          0,
-          0,
-          canvasRef.current.width,
-          canvasRef.current.height
-        );
-      } else {
-        contextRef.current.fillStyle = "#ffffff";
-        contextRef.current.fillRect(
-          0,
-          0,
-          canvasRef.current.width,
-          canvasRef.current.height
-        );
+    updateCanvasSize();
+    window.addEventListener("resize", updateCanvasSize);
+    return () => window.removeEventListener("resize", updateCanvasSize);
+  }, [currentImageIndex]);
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    setLastX(x);
+    setLastY(y);
+    setIsDrawing(true);
+
+    if (isEraser) {
+      const context = canvasRef.current.getContext("2d");
+      if (context) {
+        context.save();
+        context.globalCompositeOperation = "destination-out";
+        context.beginPath();
+        context.arc(x, y, eraserSize / 2, 0, Math.PI * 2);
+        context.fill();
+        context.restore();
       }
     }
   };
 
-  const handleSave = () => {
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const currentX = e.clientX - rect.left;
+    const currentY = e.clientY - rect.top;
+    const context = canvas.getContext("2d");
+
+    if (context && isDrawing) {
+      context.globalCompositeOperation = isEraser
+        ? "destination-out"
+        : "source-over";
+      context.strokeStyle = isEraser ? "rgba(0,0,0,1)" : penColor;
+      context.lineWidth = isEraser ? eraserSize : penSize;
+      context.lineJoin = "round";
+      context.lineCap = "round";
+
+      context.beginPath();
+      context.moveTo(lastX, lastY);
+      context.lineTo(currentX, currentY);
+      context.stroke();
+
+      setLastX(currentX);
+      setLastY(currentY);
+    }
+  };
+
+  const handleMouseUpOrLeave = () => setIsDrawing(false);
+
+  const clearCanvas = () => {
     if (canvasRef.current) {
-      const dataURL = canvasRef.current.toDataURL("image/png");
+      const context = canvasRef.current.getContext("2d");
+      if (context) {
+        context.fillStyle = "#ffffff";
+        context.fillRect(
+          0,
+          0,
+          canvasRef.current.width,
+          canvasRef.current.height
+        );
+        // Redraw current background image after clear
+        const img = new Image();
+        img.src = images[currentImageIndex];
+        img.onload = () => {
+          context.drawImage(
+            img,
+            0,
+            0,
+            canvasRef.current!.width,
+            canvasRef.current!.height
+          );
+        };
+      }
+    }
+  };
+
+  const toggleEraser = () => setIsEraser((prev) => !prev);
+
+  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPenColor(e.target.value);
+  };
+
+  const handlePenSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const size = Math.min(50, Math.max(1, Number(e.target.value)));
+    setPenSize(size);
+  };
+
+  const handleEraserSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const size = Math.min(100, Math.max(5, Number(e.target.value)));
+    setEraserSize(size);
+  };
+
+  const saveDrawing = () => {
+    if (canvasRef.current) {
       const link = document.createElement("a");
-      link.href = dataURL;
       link.download = "drawing.png";
+      link.href = canvasRef.current.toDataURL();
       link.click();
     }
   };
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (canvas) {
-      const context = canvas.getContext("2d");
-      if (context) {
-        context.strokeStyle = "black";
-        context.lineWidth = Number(penSizeRef.current?.value) || 1;
-        contextRef.current = context;
-      }
-      canvas.style.width = "100%";
-      canvas.style.height = "100%";
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-      const rect = canvas.getBoundingClientRect();
-      rectLeftRef.current = rect.left;
-      rectTopRef.current = rect.top;
-      if (toolTypeRef.current) toolTypeRef.current.innerText = "Pen";
-      if (contextRef.current) {
-        contextRef.current.fillStyle = "#ffffff";
-        contextRef.current.fillRect(0, 0, canvas.width, canvas.height);
-      }
+  const handleContainerMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setCursorX(e.clientX - rect.left);
+      setCursorY(e.clientY - rect.top);
     }
-  }, []);
+  };
+
+  const handleImageChange = (direction: "up" | "down") => {
+    setCurrentImageIndex(
+      (prev) =>
+        (prev + (direction === "down" ? 1 : -1) + images.length) % images.length
+    );
+  };
 
   return (
-    <div className="min-h-screen flex flex-col items-center bg-gray-100">
-      <div className="w-full max-w-4xl mt-8">
-        <div
-          id="paintArea"
-          className="relative border-8 border-blue-400 h-[70vh] w-full"
-        >
-          <canvas
-            id="canvas"
-            ref={canvasRef}
-            onMouseDown={startDrawing}
-            onTouchStart={startDrawing}
-            onMouseMove={drawOnCanvas}
-            onTouchMove={drawOnCanvas}
-            onMouseUp={stopDrawing}
-            onTouchEnd={stopDrawing}
-            onMouseLeave={stopDrawing}
-          />
-        </div>
-        <div className="options bg-blue-400 p-8">
-          <div id="tools-section">
-            <div className="grid grid-cols-4 gap-5 mb-10">
-              <div className="tools-wrapper">
-                <h5 className="mb-2 text-white text-lg">
-                  <span id="tool-type" ref={toolTypeRef}></span> Size:
-                </h5>
-                <input
-                  type="range"
-                  id="pen-slider"
-                  ref={penSizeRef}
-                  defaultValue="4"
-                  onChange={handlePenSizeChange}
-                  className="w-full"
-                />
+    <div className="min-h-screen bg-gray-50">
+      <div className="text-center py-8">
+        <h1 className="text-4xl font-bold text-gray-800 mb-4">
+          Finish the Drawing
+        </h1>
+        <p className="text-gray-600 max-w-2xl mx-auto px-4">
+          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
+          eiusmod tempor incididunt ut labore et dolore magna aliqua.
+        </p>
+      </div>
+
+      <div className="flex">
+        {/* Canvas Section */}
+        <div className="w-[70%] relative pt-10 pl-10">
+          <div
+            ref={containerRef}
+            className="relative"
+            onMouseMove={handleContainerMouseMove}
+          >
+            <canvas
+              ref={canvasRef}
+              className={`border border-black ${
+                isEraser ? "cursor-none" : "cursor-crosshair"
+              } relative z-10`}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUpOrLeave}
+              onMouseLeave={handleMouseUpOrLeave}
+            />
+
+            {isEraser && (
+              <div
+                className="absolute border-2 border-black rounded-full bg-white pointer-events-none z-[10000]"
+                style={{
+                  left: `${cursorX - eraserSize / 2}px`,
+                  top: `${cursorY - eraserSize / 2}px`,
+                  width: `${eraserSize}px`,
+                  height: `${eraserSize}px`,
+                }}
+              />
+            )}
+
+            <div
+              className="mt-4 flex flex-wrap gap-4 items-center"
+              style={{ width: canvasDimensions.width }}
+            >
+              <button
+                onClick={clearCanvas}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
+              >
+                Clear Canvas
+              </button>
+
+              <button
+                onClick={toggleEraser}
+                className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors shadow-md"
+              >
+                {isEraser ? "Drawing Mode" : "Eraser Mode"}
+              </button>
+
+              {!isEraser && (
+                <label className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors shadow-md cursor-pointer">
+                  Pen Color:
+                  <div className="relative">
+                    <input
+                      type="color"
+                      value={penColor}
+                      onChange={handleColorChange}
+                      className="absolute opacity-0 w-full h-full cursor-pointer"
+                    />
+                    <span
+                      className="block w-6 h-6 rounded border border-white"
+                      style={{ backgroundColor: penColor }}
+                    />
+                  </div>
+                </label>
+              )}
+
+              <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg shadow-md">
+                <span className="text-gray-700">Pen Size:</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setPenSize(Math.max(1, penSize - 1))}
+                    className="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    value={penSize}
+                    onChange={handlePenSizeChange}
+                    className="w-12 text-center bg-transparent border-b-2 border-gray-300 focus:outline-none focus:border-blue-500"
+                    min="1"
+                    max="50"
+                  />
+                  <button
+                    onClick={() => setPenSize(Math.min(50, penSize + 1))}
+                    className="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
-              <div className="tools-wrapper">
-                <h5 className="mb-2 text-white text-lg">Color:</h5>
-                <input
-                  type="color"
-                  id="color-input"
-                  ref={colorButtonRef}
-                  onChange={handleColorChange}
-                  className="w-full h-10"
-                />
+
+              <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg shadow-md">
+                <span className="text-gray-700">Eraser Size:</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setEraserSize(Math.max(5, eraserSize - 5))}
+                    className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    value={eraserSize}
+                    onChange={handleEraserSizeChange}
+                    className="w-12 text-center bg-transparent border-b-2 border-gray-300 focus:outline-none focus:border-red-500"
+                    min="5"
+                    max="100"
+                    step="5"
+                  />
+                  <button
+                    onClick={() => setEraserSize(Math.min(100, eraserSize + 5))}
+                    className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
-              <div className="tools-wrapper">
-                <h5 className="mb-2 text-white text-lg">Background Image:</h5>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleBackgroundImageUpload}
-                  className="w-full"
-                />
-              </div>
+
+              <button
+                className="ml-auto px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
+                onClick={saveDrawing}
+              >
+                Save Drawing
+              </button>
             </div>
-            <div className="grid grid-cols-4 gap-5">
-              <button
-                id="button-clear"
-                ref={clearButtonRef}
-                onClick={handleClear}
-                className="py-3 rounded-full bg-white text-blue-400 text-lg font-medium"
-              >
-                Clear
-              </button>
-              <button
-                id="button-pen"
-                ref={penButtonRef}
-                onClick={handlePenClick}
-                className="py-3 rounded-full bg-white text-blue-400 text-lg font-medium"
-              >
-                Pen
-              </button>
-              <button
-                id="button-erase"
-                ref={eraseButtonRef}
-                onClick={handleEraseClick}
-                className="py-3 rounded-full bg-white text-blue-400 text-lg font-medium"
-              >
-                Erase
-              </button>
-              <Button onClick={handleSave} className="py-3 rounded-full">
-                Save
-              </Button>
+          </div>
+        </div>
+
+        {/* Image Deck Section */}
+        <div className="w-[30%] pr-8 pl-4 pt-10">
+          <div className="relative h-[700px] overflow-y-auto">
+            <div className="flex flex-col gap-4">
+              {images.map((img, index) => (
+                <div
+                  key={index}
+                  className={`relative cursor-pointer transition-transform duration-200 ease-in-out hover:scale-105 ${
+                    index === currentImageIndex
+                      ? "ring-4 ring-blue-500"
+                      : "ring-1 ring-gray-300"
+                  } rounded-lg overflow-hidden`}
+                  onClick={() => setCurrentImageIndex(index)}
+                >
+                  <img
+                    src={img}
+                    alt={`Background ${index + 1}`}
+                    className="w-full h-32 object-cover"
+                  />
+                  {index === currentImageIndex && (
+                    <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+                      <span className="text-white font-bold text-lg">
+                        Current
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -282,4 +365,4 @@ const DrawingPage = () => {
   );
 };
 
-export default DrawingPage;
+export default CanvasBoard;
