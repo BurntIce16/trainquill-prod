@@ -3,7 +3,8 @@ import React, { useRef, useEffect, useState } from "react";
 
 const CanvasBoard: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const backgroundCanvasRef = useRef<HTMLCanvasElement>(null);
+  const drawingCanvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isEraser, setIsEraser] = useState(false);
   const [penColor, setPenColor] = useState("#000000");
@@ -13,13 +14,8 @@ const CanvasBoard: React.FC = () => {
   const [lastY, setLastY] = useState(0);
   const [cursorX, setCursorX] = useState(0);
   const [cursorY, setCursorY] = useState(0);
-  const [canvasDimensions, setCanvasDimensions] = useState({
-    width: 0,
-    height: 0,
-  });
   const [currentImageIndex, setCurrentImageIndex] = useState(2);
 
-  // Sample images - replace with your actual image paths
   const images = [
     "/images/1.png",
     "/images/2.png",
@@ -28,39 +24,86 @@ const CanvasBoard: React.FC = () => {
     "/images/5.png",
   ];
 
-  const getCircularDistance = (
-    index: number,
-    current: number,
-    length: number
-  ) => {
-    let distance = index - current;
-    if (distance > length / 2) distance -= length;
-    else if (distance < -length / 2) distance += length;
-    return distance;
+  // Save drawing state for canvas preservation
+  const tempCanvasRef = useRef(document.createElement("canvas"));
+
+  const getVisibleImages = () => {
+    const length = images.length;
+    return [
+      (currentImageIndex - 1 + length) % length,
+      currentImageIndex,
+      (currentImageIndex + 1) % length,
+    ];
+  };
+
+  const preserveDrawing = () => {
+    if (
+      drawingCanvasRef.current &&
+      tempCanvasRef.current &&
+      backgroundCanvasRef.current
+    ) {
+      tempCanvasRef.current.width = drawingCanvasRef.current.width;
+      tempCanvasRef.current.height = drawingCanvasRef.current.height;
+      const tempCtx = tempCanvasRef.current.getContext("2d");
+      const drawCtx = drawingCanvasRef.current.getContext("2d");
+      if (tempCtx && drawCtx) {
+        tempCtx.drawImage(drawingCanvasRef.current, 0, 0);
+      }
+    }
+  };
+
+  const restoreDrawing = () => {
+    if (
+      drawingCanvasRef.current &&
+      tempCanvasRef.current &&
+      backgroundCanvasRef.current
+    ) {
+      const drawCtx = drawingCanvasRef.current.getContext("2d");
+      if (drawCtx) {
+        drawCtx.drawImage(
+          tempCanvasRef.current,
+          0,
+          0,
+          drawingCanvasRef.current.width,
+          drawingCanvasRef.current.height
+        );
+      }
+    }
   };
 
   useEffect(() => {
     const updateCanvasSize = () => {
-      if (canvasRef.current) {
-        const width = 0.7 * window.innerWidth;
-        const height = 0.7 * window.innerHeight;
-        canvasRef.current.width = width;
-        canvasRef.current.height = height;
-        setCanvasDimensions({ width, height });
+      if (
+        containerRef.current &&
+        backgroundCanvasRef.current &&
+        drawingCanvasRef.current
+      ) {
+        // Preserve current drawings before resize
+        preserveDrawing();
 
-        const context = canvasRef.current.getContext("2d");
-        if (context) {
-          context.fillStyle = "#ffffff";
-          context.fillRect(0, 0, width, height);
+        const width = containerRef.current.clientWidth;
+        const height = containerRef.current.clientHeight;
 
-          // Load and draw current background image
+        // Update canvas dimensions
+        backgroundCanvasRef.current.width = width;
+        backgroundCanvasRef.current.height = height;
+        drawingCanvasRef.current.width = width;
+        drawingCanvasRef.current.height = height;
+
+        // Redraw background
+        const bgCtx = backgroundCanvasRef.current.getContext("2d");
+        if (bgCtx) {
+          bgCtx.fillStyle = "#ffffff";
+          bgCtx.fillRect(0, 0, width, height);
           const img = new Image();
           img.src = images[currentImageIndex];
           img.onload = () => {
-            context.globalCompositeOperation = "source-over";
-            context.drawImage(img, 0, 0, width, height);
+            bgCtx.drawImage(img, 0, 0, width, height);
           };
         }
+
+        // Restore drawings after resize
+        restoreDrawing();
       }
     };
 
@@ -70,8 +113,8 @@ const CanvasBoard: React.FC = () => {
   }, [currentImageIndex]);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!canvasRef.current) return;
-    const rect = canvasRef.current.getBoundingClientRect();
+    if (!drawingCanvasRef.current) return;
+    const rect = drawingCanvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     setLastX(x);
@@ -79,39 +122,38 @@ const CanvasBoard: React.FC = () => {
     setIsDrawing(true);
 
     if (isEraser) {
-      const context = canvasRef.current.getContext("2d");
-      if (context) {
-        context.save();
-        context.globalCompositeOperation = "destination-out";
-        context.beginPath();
-        context.arc(x, y, eraserSize / 2, 0, Math.PI * 2);
-        context.fill();
-        context.restore();
+      const ctx = drawingCanvasRef.current.getContext("2d");
+      if (ctx) {
+        ctx.save();
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.beginPath();
+        ctx.arc(x, y, eraserSize / 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
       }
     }
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!canvasRef.current) return;
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
+    if (!drawingCanvasRef.current || !isDrawing) return;
+    const rect = drawingCanvasRef.current.getBoundingClientRect();
     const currentX = e.clientX - rect.left;
     const currentY = e.clientY - rect.top;
-    const context = canvas.getContext("2d");
+    const ctx = drawingCanvasRef.current.getContext("2d");
 
-    if (context && isDrawing) {
-      context.globalCompositeOperation = isEraser
+    if (ctx) {
+      ctx.globalCompositeOperation = isEraser
         ? "destination-out"
         : "source-over";
-      context.strokeStyle = isEraser ? "rgba(0,0,0,1)" : penColor;
-      context.lineWidth = isEraser ? eraserSize : penSize;
-      context.lineJoin = "round";
-      context.lineCap = "round";
+      ctx.strokeStyle = isEraser ? "rgba(0,0,0,1)" : penColor;
+      ctx.lineWidth = isEraser ? eraserSize : penSize;
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
 
-      context.beginPath();
-      context.moveTo(lastX, lastY);
-      context.lineTo(currentX, currentY);
-      context.stroke();
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(currentX, currentY);
+      ctx.stroke();
 
       setLastX(currentX);
       setLastY(currentY);
@@ -121,28 +163,15 @@ const CanvasBoard: React.FC = () => {
   const handleMouseUpOrLeave = () => setIsDrawing(false);
 
   const clearCanvas = () => {
-    if (canvasRef.current) {
-      const context = canvasRef.current.getContext("2d");
-      if (context) {
-        context.fillStyle = "#ffffff";
-        context.fillRect(
+    if (drawingCanvasRef.current) {
+      const ctx = drawingCanvasRef.current.getContext("2d");
+      if (ctx) {
+        ctx.clearRect(
           0,
           0,
-          canvasRef.current.width,
-          canvasRef.current.height
+          drawingCanvasRef.current.width,
+          drawingCanvasRef.current.height
         );
-        // Redraw current background image after clear
-        const img = new Image();
-        img.src = images[currentImageIndex];
-        img.onload = () => {
-          context.drawImage(
-            img,
-            0,
-            0,
-            canvasRef.current!.width,
-            canvasRef.current!.height
-          );
-        };
       }
     }
   };
@@ -154,21 +183,30 @@ const CanvasBoard: React.FC = () => {
   };
 
   const handlePenSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const size = Math.min(50, Math.max(1, Number(e.target.value)));
-    setPenSize(size);
+    setPenSize(Math.min(50, Math.max(1, Number(e.target.value))));
   };
 
   const handleEraserSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const size = Math.min(100, Math.max(5, Number(e.target.value)));
-    setEraserSize(size);
+    setEraserSize(Math.min(100, Math.max(5, Number(e.target.value))));
   };
 
   const saveDrawing = () => {
-    if (canvasRef.current) {
-      const link = document.createElement("a");
-      link.download = "drawing.png";
-      link.href = canvasRef.current.toDataURL();
-      link.click();
+    if (backgroundCanvasRef.current && drawingCanvasRef.current) {
+      const combinedCanvas = document.createElement("canvas");
+      const width = backgroundCanvasRef.current.width;
+      const height = backgroundCanvasRef.current.height;
+      combinedCanvas.width = width;
+      combinedCanvas.height = height;
+      const ctx = combinedCanvas.getContext("2d");
+
+      if (ctx) {
+        ctx.drawImage(backgroundCanvasRef.current, 0, 0);
+        ctx.drawImage(drawingCanvasRef.current, 0, 0);
+        const link = document.createElement("a");
+        link.download = "drawing.png";
+        link.href = combinedCanvas.toDataURL();
+        link.click();
+      }
     }
   };
 
@@ -180,7 +218,7 @@ const CanvasBoard: React.FC = () => {
     }
   };
 
-  const handleImageChange = (direction: "up" | "down") => {
+  const handleImageNavigation = (direction: "up" | "down") => {
     setCurrentImageIndex(
       (prev) =>
         (prev + (direction === "down" ? 1 : -1) + images.length) % images.length
@@ -199,25 +237,36 @@ const CanvasBoard: React.FC = () => {
         </p>
       </div>
 
-      <div className="flex">
-        {/* Canvas Section */}
-        <div className="w-[70%] relative pt-10 pl-10">
+      <div className="flex gap-8 px-8 mt-8">
+        <div className="w-[60%] flex flex-col">
+          <div className="text-center mb-4">
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              Be Creative!
+            </h2>
+            <p className="text-sm text-gray-500 mb-2">
+              Express your creativity on the canvas below
+            </p>
+          </div>
+
           <div
             ref={containerRef}
-            className="relative"
+            className="relative h-[650px] border border-black bg-white"
             onMouseMove={handleContainerMouseMove}
           >
             <canvas
-              ref={canvasRef}
-              className={`border border-black ${
+              ref={backgroundCanvasRef}
+              className="absolute w-full h-full z-0"
+            />
+            <canvas
+              ref={drawingCanvasRef}
+              className={`absolute w-full h-full ${
                 isEraser ? "cursor-none" : "cursor-crosshair"
-              } relative z-10`}
+              } z-10`}
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUpOrLeave}
               onMouseLeave={handleMouseUpOrLeave}
             />
-
             {isEraser && (
               <div
                 className="absolute border-2 border-black rounded-full bg-white pointer-events-none z-[10000]"
@@ -229,135 +278,154 @@ const CanvasBoard: React.FC = () => {
                 }}
               />
             )}
+          </div>
 
-            <div
-              className="mt-4 flex flex-wrap gap-4 items-center"
-              style={{ width: canvasDimensions.width }}
+          <div className="mt-4 flex flex-wrap gap-4 items-center">
+            <button
+              onClick={clearCanvas}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
             >
-              <button
-                onClick={clearCanvas}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
-              >
-                Clear Canvas
-              </button>
+              Clear Canvas
+            </button>
 
-              <button
-                onClick={toggleEraser}
-                className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors shadow-md"
-              >
-                {isEraser ? "Drawing Mode" : "Eraser Mode"}
-              </button>
+            <button
+              onClick={toggleEraser}
+              className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors shadow-md"
+            >
+              {isEraser ? "Drawing Mode" : "Eraser Mode"}
+            </button>
 
-              {!isEraser && (
-                <label className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors shadow-md cursor-pointer">
-                  Pen Color:
-                  <div className="relative">
-                    <input
-                      type="color"
-                      value={penColor}
-                      onChange={handleColorChange}
-                      className="absolute opacity-0 w-full h-full cursor-pointer"
-                    />
-                    <span
-                      className="block w-6 h-6 rounded border border-white"
-                      style={{ backgroundColor: penColor }}
-                    />
-                  </div>
-                </label>
-              )}
-
-              <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg shadow-md">
-                <span className="text-gray-700">Pen Size:</span>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setPenSize(Math.max(1, penSize - 1))}
-                    className="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                  >
-                    -
-                  </button>
+            {!isEraser && (
+              <label className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors shadow-md cursor-pointer">
+                Pen Color:
+                <div className="relative">
                   <input
-                    type="number"
-                    value={penSize}
-                    onChange={handlePenSizeChange}
-                    className="w-12 text-center bg-transparent border-b-2 border-gray-300 focus:outline-none focus:border-blue-500"
-                    min="1"
-                    max="50"
+                    type="color"
+                    value={penColor}
+                    onChange={handleColorChange}
+                    className="absolute opacity-0 w-full h-full cursor-pointer"
                   />
-                  <button
-                    onClick={() => setPenSize(Math.min(50, penSize + 1))}
-                    className="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg shadow-md">
-                <span className="text-gray-700">Eraser Size:</span>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setEraserSize(Math.max(5, eraserSize - 5))}
-                    className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-                  >
-                    -
-                  </button>
-                  <input
-                    type="number"
-                    value={eraserSize}
-                    onChange={handleEraserSizeChange}
-                    className="w-12 text-center bg-transparent border-b-2 border-gray-300 focus:outline-none focus:border-red-500"
-                    min="5"
-                    max="100"
-                    step="5"
+                  <span
+                    className="block w-6 h-6 rounded border border-white"
+                    style={{ backgroundColor: penColor }}
                   />
-                  <button
-                    onClick={() => setEraserSize(Math.min(100, eraserSize + 5))}
-                    className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-                  >
-                    +
-                  </button>
                 </div>
-              </div>
+              </label>
+            )}
 
-              <button
-                className="ml-auto px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
-                onClick={saveDrawing}
-              >
-                Save Drawing
-              </button>
+            <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg shadow-md">
+              <span className="text-gray-700">Pen Size:</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPenSize(Math.max(1, penSize - 1))}
+                  className="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  value={penSize}
+                  onChange={handlePenSizeChange}
+                  className="w-12 text-center bg-transparent border-b-2 border-gray-300 focus:outline-none focus:border-blue-500"
+                  min="1"
+                  max="50"
+                />
+                <button
+                  onClick={() => setPenSize(Math.min(50, penSize + 1))}
+                  className="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                >
+                  +
+                </button>
+              </div>
             </div>
+
+            <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg shadow-md">
+              <span className="text-gray-700">Eraser Size:</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setEraserSize(Math.max(5, eraserSize - 5))}
+                  className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  value={eraserSize}
+                  onChange={handleEraserSizeChange}
+                  className="w-12 text-center bg-transparent border-b-2 border-gray-300 focus:outline-none focus:border-red-500"
+                  min="5"
+                  max="100"
+                  step="5"
+                />
+                <button
+                  onClick={() => setEraserSize(Math.min(100, eraserSize + 5))}
+                  className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            <button
+              className="ml-auto px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
+              onClick={saveDrawing}
+            >
+              Save Drawing
+            </button>
           </div>
         </div>
 
-        {/* Image Deck Section */}
-        <div className="w-[30%] pr-8 pl-4 pt-10">
-          <div className="relative h-[700px] overflow-y-auto">
-            <div className="flex flex-col gap-4">
-              {images.map((img, index) => (
-                <div
-                  key={index}
-                  className={`relative cursor-pointer transition-transform duration-200 ease-in-out hover:scale-105 ${
-                    index === currentImageIndex
-                      ? "ring-4 ring-blue-500"
-                      : "ring-1 ring-gray-300"
-                  } rounded-lg overflow-hidden`}
-                  onClick={() => setCurrentImageIndex(index)}
-                >
-                  <img
-                    src={img}
-                    alt={`Background ${index + 1}`}
-                    className="w-full h-32 object-cover"
-                  />
-                  {index === currentImageIndex && (
-                    <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-                      <span className="text-white font-bold text-lg">
-                        Current
-                      </span>
-                    </div>
-                  )}
-                </div>
-              ))}
+        <div className="w-[40%] pr-4">
+          {/* New heading section */}
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              Choose your background!
+            </h2>
+            <p className="text-sm text-gray-500">
+              Click on images below to select different backgrounds
+            </p>
+          </div>
+
+          {/* Image deck container */}
+          <div className="relative h-[700px] flex flex-col items-center justify-center bg-gray-50 rounded-lg border border-gray-200 p-4">
+            <button
+              onClick={() => handleImageNavigation("up")}
+              className="mb-4 p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors shadow-md"
+            >
+              ↑
+            </button>
+
+            <div className="relative h-[600px] w-4/5 overflow-hidden">
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                {getVisibleImages().map((imageIndex, position) => (
+                  <div
+                    key={imageIndex}
+                    className={`w-full transition-all duration-300 cursor-pointer ${
+                      position === 1
+                        ? "scale-100 opacity-100 z-10"
+                        : "scale-90 opacity-80 z-0"
+                    }`}
+                    style={{
+                      transform: `translateY(${(position - 1) * 100}px)`,
+                    }}
+                    onClick={() => setCurrentImageIndex(imageIndex)}
+                  >
+                    <img
+                      src={images[imageIndex]}
+                      alt={`Background ${imageIndex + 1}`}
+                      className="pl-6 w-full h-70 object-contain rounded-lg border-2 border-gray-200 bg-white shadow-md"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
+
+            <button
+              onClick={() => handleImageNavigation("down")}
+              className="mt-4 p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors shadow-md"
+            >
+              ↓
+            </button>
           </div>
         </div>
       </div>
