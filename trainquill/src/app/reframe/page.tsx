@@ -232,8 +232,10 @@ const CanvasBoard: React.FC = () => {
           Finish the Drawing
         </h1>
         <p className="text-gray-600 max-w-2xl mx-auto px-4">
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
-          eiusmod tempor incididunt ut labore et dolore magna aliqua.
+          Unleash your creativity! Draw, erase, and customize your artwork on
+          various backgrounds. Experiment with different tools and colors to
+          bring your ideas to life. When you're done, save and share your
+          masterpiece with others!
         </p>
       </div>
 
@@ -250,12 +252,12 @@ const CanvasBoard: React.FC = () => {
 
           <div
             ref={containerRef}
-            className="relative h-[650px] border border-black bg-white"
+            className="relative h-[650px] border border-black bg-white rounded-lg"
             onMouseMove={handleContainerMouseMove}
           >
             <canvas
               ref={backgroundCanvasRef}
-              className="absolute w-full h-full z-0"
+              className="absolute w-full h-full z-0 rounded-lg"
             />
             <canvas
               ref={drawingCanvasRef}
@@ -376,7 +378,6 @@ const CanvasBoard: React.FC = () => {
         </div>
 
         <div className="w-[40%] pr-4">
-          {/* New heading section */}
           <div className="text-center mb-6">
             <h2 className="text-2xl font-bold text-gray-800 mb-2">
               Choose your background!
@@ -386,11 +387,10 @@ const CanvasBoard: React.FC = () => {
             </p>
           </div>
 
-          {/* Image deck container */}
-          <div className="relative h-[700px] flex flex-col items-center justify-center bg-gray-50 rounded-lg border border-gray-200 p-4">
+          <div className="relative h-[650px] flex flex-col items-center justify-center bg-gray-50 rounded-lg border border-gray-200 p-4">
             <button
               onClick={() => handleImageNavigation("up")}
-              className="mb-4 p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors shadow-md"
+              className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors shadow-md"
             >
               ↑
             </button>
@@ -425,6 +425,14 @@ const CanvasBoard: React.FC = () => {
               className="mt-4 p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors shadow-md"
             >
               ↓
+            </button>
+          </div>
+          <div className="mt-4 w-full flex justify-end">
+            <button
+              onClick={() => (window.location.href = "/art-hunt")}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md text-lg"
+            >
+              Continue →
             </button>
           </div>
         </div>
