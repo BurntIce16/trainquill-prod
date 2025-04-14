@@ -5,6 +5,7 @@ const CanvasBoard: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const backgroundCanvasRef = useRef<HTMLCanvasElement>(null);
   const drawingCanvasRef = useRef<HTMLCanvasElement>(null);
+  const tempCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isEraser, setIsEraser] = useState(false);
   const [penColor, setPenColor] = useState("#000000");
@@ -24,8 +25,9 @@ const CanvasBoard: React.FC = () => {
     "/images/5.png",
   ];
 
-  // Save drawing state for canvas preservation
-  const tempCanvasRef = useRef(document.createElement("canvas"));
+  useEffect(() => {
+    tempCanvasRef.current = document.createElement("canvas");
+  }, []);
 
   const getVisibleImages = () => {
     const length = images.length;
