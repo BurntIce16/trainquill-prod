@@ -6,11 +6,13 @@ import { Play, RotateCw, Volume2, VolumeX } from 'lucide-react';
 interface AudioControllerProps {
   audioFile: string;
   onAudioRef?: (ref: React.RefObject<HTMLAudioElement | null>) => void;
+  autoplay?: boolean;
 }
 
 const AudioController: React.FC<AudioControllerProps> = ({ 
   audioFile,
-  onAudioRef 
+  onAudioRef,
+  autoplay = false // default to false
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
@@ -31,6 +33,15 @@ const AudioController: React.FC<AudioControllerProps> = ({
       });
     }
   }, []);
+
+  useEffect(() => {
+    if (autoplay && audioRef.current) {
+      audioRef.current.play().catch((error) => {
+        console.warn('Autoplay failed:', error);
+      });
+      setIsPlaying(true);
+    }
+  }, [autoplay]);
 
   const handlePlayOrRestart = () => {
     if (!audioRef.current) return;

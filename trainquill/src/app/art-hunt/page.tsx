@@ -29,9 +29,19 @@ export default function Home() {
             <div className="grid grid-rows-[auto_auto_auto] items-center justify-items-center min-h-screen p-4 pt-8 pb-20 gap-2 sm:p-6">
                 <h1 className="text-4xl">Art Hunt</h1>
 
-                <AudioController
-                    audioFile="/audio/art-hunt.mp3"
-                />
+                
+                {!isSubmitted && (
+                    <AudioController
+                        audioFile="/audio/art-hunt1.mp3"
+                    />
+                )}
+
+                {isSubmitted && (
+                    <AudioController
+                        audioFile="/audio/art-hunt2.mp3"
+                        autoplay={true}
+                    />
+                )}
 
                 <Carousel
                     opts={{
